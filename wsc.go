@@ -1,4 +1,4 @@
-package main
+package ws
 
 import (
 	"errors"
@@ -26,6 +26,15 @@ type DefaultWebSocketClient struct {
 	welcomeMessage   any
 }
 
+func NewDefaultClient(addr string) *DefaultWebSocketClient {
+
+	return &DefaultWebSocketClient{
+		Addr:             addr,
+		Conn:             nil,
+		IncomingMessages: make(chan any),
+		OutgoingMessages: make(chan any, 10), // Change 10 to appropriate buffer size
+	}
+}
 func (c *DefaultWebSocketClient) Shutdown() {
 	defer c.Conn.Close()
 	defer close(c.OutgoingMessages)
