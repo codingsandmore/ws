@@ -9,7 +9,7 @@ import (
 )
 
 type MessageDecoder interface {
-	Decode(bytes []byte) (any, error)
+	Decode(bytes []byte, client WebSocketClient) (any, error)
 }
 type WebSocketClient interface {
 	Connect() error
@@ -83,6 +83,7 @@ func (c *DefaultWebSocketClient) Connect() error {
 		log.Debug().Any("welcome", c.welcomeMessage).Msgf("sending welcome message")
 		c.Send(c.welcomeMessage)
 	}
+
 	return nil
 }
 
@@ -104,12 +105,12 @@ func (c *DefaultWebSocketClient) maintainConnection() {
 			continue
 		}
 
-		message, err := c.Decoder.Decode(msg)
+		message, err := c.Decoder.Decode(msg, c)
 
 		if err != nil {
 			log.Error().AnErr("decode error", err).Msgf("Decode Error: %s", err)
 		} else if message == nil {
-			log.Warn().Msgf("ignored nil message")
+			log.Debug().Msgf("ignored nil message")
 		} else {
 			log.Debug().Any("message", message).Msgf("forwarding decoded message")
 			c.IncomingMessages <- message
@@ -129,6 +130,7 @@ func (c *DefaultWebSocketClient) maintainOutgoingMessages() {
 		var err error
 		switch v := msg.(type) {
 		case []byte:
+			log.Debug().Str("send", string(v)).Msgf("sending message")
 			err = c.Conn.WriteMessage(1, v)
 		case string:
 			err = c.Conn.WriteMessage(1, []byte(v))
@@ -143,6 +145,7 @@ func (c *DefaultWebSocketClient) maintainOutgoingMessages() {
 			continue
 		}
 	}
+	log.Info().Msgf("finished sending loop")
 }
 
 func (c *DefaultWebSocketClient) Send(msg any) {
