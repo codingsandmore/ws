@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
+	"net/http"
 	"net/url"
 	"time"
 )
@@ -18,6 +19,7 @@ type WebSocketClient interface {
 	Shutdown()
 }
 type DefaultWebSocketClient struct {
+	Header           http.Header
 	Addr             string
 	Conn             *websocket.Conn
 	IncomingMessages chan any
@@ -26,9 +28,10 @@ type DefaultWebSocketClient struct {
 	welcomeMessage   any
 }
 
-func NewDefaultClient(addr string) *DefaultWebSocketClient {
+func NewDefaultClient(addr string, header http.Header) *DefaultWebSocketClient {
 
 	return &DefaultWebSocketClient{
+		Header:           header,
 		Addr:             addr,
 		Conn:             nil,
 		IncomingMessages: make(chan any),
@@ -73,7 +76,7 @@ func (c *DefaultWebSocketClient) Connect() error {
 		return err
 	}
 
-	c.Conn, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
+	c.Conn, _, err = websocket.DefaultDialer.Dial(u.String(), c.Header)
 	if err != nil {
 		log.Error().AnErr("error during dialing url", err)
 		return err
